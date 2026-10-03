@@ -27,6 +27,16 @@
         </section>
 
         <section>
+          <h2>Generate blockout</h2>
+          <div class="button-row">
+            <label class="file-button" for="scene-spec-file">Scene specification</label>
+            <button id="export-blockout" class="secondary" type="button" disabled>Export blockout GLB</button>
+          </div>
+          <input id="scene-spec-file" type="file" accept=".json,application/json" />
+          <p class="status">Load <code>scene_spec.json</code> to create the structural Three.js model before Maya production.</p>
+        </section>
+
+        <section>
           <h2>Reference and dimensions</h2>
           <div class="button-row">
             <label class="file-button secondary" for="reference-file">Reference image</label>
@@ -48,6 +58,14 @@
             <div><dt>Depth Z</dt><dd>—</dd></div>
           </dl>
           <div id="dimension-results" class="results muted">Load a dimension specification to compare expected and actual size.</div>
+        </section>
+
+        <section>
+          <div class="section-heading">
+            <h2>Structural validation</h2>
+            <span id="validation-count" class="badge">0</span>
+          </div>
+          <div id="validation-results" class="validation muted">Load a scene specification and generate or load a model.</div>
         </section>
 
         <section class="parts-section">

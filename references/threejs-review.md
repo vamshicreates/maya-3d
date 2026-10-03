@@ -1,49 +1,46 @@
-# Three.js review workflow
+# Three.js blockout and review workflow
 
-Three.js is installed in `viewer/` as a pinned npm dependency from the official `mrdoob/three.js` project. It is a rendering and inspection layer, not a replacement for Maya's native modeling tools or scene format.
+Three.js is pinned in `viewer/` from the official `mrdoob/three.js` project. It serves two controlled roles: preliminary structural blockout before detailed Maya work and final inspection after Maya exports GLB. Image analysis and the shared specifications provide the design intent.
 
-## Prepare the review artifact
+## Preliminary blockout
 
-1. Save the editable `.ma` or `.mb` scene first.
-2. Export a self-contained `.glb` using a verified Maya exporter or conversion path. Preserve semantic transform and mesh names. Convert Maya centimeters to glTF meters and avoid a compensating scale on an unnamed wrapper node.
-3. Validate the GLB with the Khronos glTF Validator when available.
-4. Complete `dimension_spec.json`, including overall size, tolerance, and `requiredParts`. Required part strings must exactly match exported node names.
+1. Complete and validate `dimension_spec.json` and `scene_spec.json`.
+2. From `viewer/`, run `npm install` and `npm run dev`.
+3. Load `scene_spec.json`. The viewer constructs supported primitives and curves at glTF meter scale.
+4. Load `dimension_spec.json` and the reference image.
+5. Resolve failed required-part, endpoint-anchor, connection, symmetry, and dimension checks. Inspect the silhouette from the reference camera and at least one secondary angle.
+6. Export the approved blockout GLB when it helps Maya layout. Retain the specifications as the procedural authority.
 
-## Run the reviewer
+The preliminary blockout is successful when the component inventory, major proportions, curve endpoints, and attachment relationships are approved. It is not expected to have production topology, final UVs, or final materials.
 
-From this skill's `viewer/` folder:
+## Maya production
 
-```bash
-npm install
-npm run dev
-```
+Generate the Maya scene from the same specifications. Use `assets/scene_job_from_spec.py` as a starting point for compatible primitives, then replace or refine blockout geometry with purpose-built Maya operations. Save the editable `.ma` or `.mb` before interchange export.
 
-Open the displayed local URL, then load a GLB by file or URL. Load the matching dimension specification and optional reference image.
+Do not make the imported GLB the only source of a production asset. glTF commonly contains triangulated geometry and may introduce transform wrappers. Map corrections to semantic part names and update the procedural generator.
 
-The reviewer provides:
+## Final review
 
-- orbit, pan, zoom, fit-to-model, and auto-rotation;
-- semantic scene-part listing with visibility controls;
-- click selection and bounding-box highlighting;
-- wireframe and hard-edge overlays;
-- GLB world-space width, height, and depth in meters;
-- expected-versus-actual overall dimension differences;
-- missing required-part detection by semantic node name;
-- reference-image overlay with adjustable opacity.
+1. Export a self-contained GLB from Maya with semantic names and meter scale.
+2. Validate the GLB with the Khronos glTF Validator when available.
+3. Load the final GLB, the same two specifications, and the reference image in the viewer.
+4. Use part visibility, selection, bounding boxes, wireframe, and hard-edge overlays to inspect completeness, topology symptoms, silhouette, scale, and attachment quality.
+5. Correct failures in the Maya generator, rebuild the native scene, and repeat the export and review.
 
 ## Interpret results
 
-- A missing named part is a semantic modeling failure. Add or repair its Maya generator, rebuild the native scene, and export a new GLB.
-- A correct node with the wrong bound is a scale, axis, or exporter problem. Verify Maya units, exporter conversion, root transforms, and glTF meter scale.
-- A visible gap between parts may be an anchor or curve-endpoint error. Check the declared attachment anchors in `dimension_spec.json` and the generating Maya curve or profile.
-- A silhouette mismatch with correct dimensions is commonly a camera calibration, curvature, or part-shape problem. Match reference aspect and field of view before changing geometry.
-- Wireframe and edge views help reveal insufficient bevel segments, unexpected triangulation, disconnected shells, and missing support loops. Confirm topology in Maya before delivery.
-
-Do not use browser-side object transforms as the authoritative correction. Record the affected semantic node and intended change, then update the procedural Maya source so the native scene and later exports remain reproducible.
+- A missing named part means the scene specification or Maya generator is incomplete.
+- A tube endpoint outside its anchor tolerance means the generating curve or transform is wrong.
+- A connection failure means declared parts are separated beyond their allowed world-space gap.
+- A symmetry failure means mirrored part centers do not agree after reflection across the declared axis.
+- Correct structure with a wrong overall bound usually indicates a scale, axis, root-transform, or exporter problem.
+- A silhouette mismatch with correct dimensions usually points to camera calibration, curvature, or part shape.
+- Wireframe and edge views can reveal insufficient bevel segments, unexpected triangulation, disconnected shells, and missing support loops. Confirm topology in Maya.
 
 ## Sources
 
 - [Official Three.js repository](https://github.com/mrdoob/three.js)
 - [Three.js GLTFLoader](https://threejs.org/docs/pages/GLTFLoader.html)
+- [Three.js GLTFExporter](https://threejs.org/docs/pages/GLTFExporter.html)
 - [Three.js OrbitControls](https://threejs.org/docs/pages/OrbitControls.html)
 - [Khronos glTF Validator](https://github.com/KhronosGroup/glTF-Validator)

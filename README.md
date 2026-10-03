@@ -7,9 +7,10 @@ A reusable Codex skill for creating, editing, and checking Autodesk Maya project
 - Image-to-scene workflow with explicit handling of hidden geometry and scale assumptions
 - Dimension-aware modeling that separates pixel resolution from physical measurements
 - A reusable `dimension_spec.json` template for units, anchors, tolerances, and measurement provenance
-- An integrated Three.js GLB reviewer with part visibility, selection, wireframe, edge overlays, reference-image comparison, and dimension checks
+- A shared `scene_spec.json` contract for semantic parts, primitive or profile construction, anchors, connections, symmetry, and assumptions
+- A Three.js preliminary blockout generator and final GLB reviewer with structural validation, part visibility, selection, wireframe, edge overlays, reference-image comparison, and dimension checks
 - Cross-platform `mayapy` discovery for Windows and macOS
-- A reusable Maya scene-job template
+- Reusable Maya scene-job templates, including a specification-driven blockout builder
 - Native `.ma` or `.mb` scene verification by reopening the generated scene
 - Checks for renderable meshes and missing or external image assets
 - Guidance for Arnold licensing, Maya projects, and common interchange formats
@@ -53,11 +54,14 @@ maya-3d/
 ├── INSTALL.md
 ├── agents/openai.yaml
 ├── assets/dimension_spec_template.json
+├── assets/scene_spec_template.json
+├── assets/scene_job_from_spec.py
 ├── assets/scene_job_template.py
 ├── references/
 │   ├── dimensions-and-scale.md
 │   ├── image-to-scene.md
 │   ├── platform-and-rendering.md
+│   ├── scene-specification.md
 │   └── threejs-review.md
 ├── viewer/
 │   ├── index.html
@@ -66,7 +70,20 @@ maya-3d/
 └── scripts/maya_runner.py
 ```
 
-## Three.js review application
+## Specification-first hybrid workflow
+
+1. Analyze the reference image and write `dimension_spec.json` plus `scene_spec.json`.
+2. Validate the scene specification:
+
+```bash
+python scripts/validate_scene_spec.py PATH_TO_PROJECT/scene_spec.json
+```
+
+3. Generate and approve the structural Three.js blockout.
+4. Build the editable Maya scene from the same specifications.
+5. Export GLB from Maya and repeat the Three.js checks for final QA.
+
+## Three.js blockout and review application
 
 The repository includes a browser review tool powered by the official Three.js package. From `viewer/`, run:
 
@@ -75,8 +92,10 @@ npm install
 npm run dev
 ```
 
-Load a self-contained GLB, the project's `dimension_spec.json`, and an optional reference image. The viewer reports world-space dimensions in meters, missing required parts, and expected-versus-actual size differences while providing interactive model inspection. Maya remains the authoritative editable scene.
+Load `scene_spec.json` to generate a blockout from boxes, cylinders, spheres, tubes, and extruded profiles. Then load the project's `dimension_spec.json` and optional reference image. The viewer checks required parts, curve endpoint anchors, connections, symmetry, world-space dimensions, and expected-versus-actual size. It can export the approved blockout as GLB for Maya reference.
+
+After Maya production, load the exported GLB with the same specifications to repeat the checks. Maya remains the authoritative editable scene.
 
 ## Validation status
 
-The Python files and skill metadata have been checked. Native Maya scene and render validation require an installed Maya environment with a valid license.
+The Python files, scene-specification validator, Three.js generator tests, production browser bundle, and skill metadata are checked in this repository. Native Maya scene and render validation require an installed Maya environment with a valid license.

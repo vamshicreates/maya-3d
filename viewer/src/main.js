@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { buildBlockout, evaluateBlockout, toMeters, validateSceneSpec } from './scene-spec.js';
 import './style.css';
 
 const viewport = document.querySelector('#viewport');
@@ -12,6 +14,9 @@ const dimensionResults = document.querySelector('#dimension-results');
 const referenceOverlay = document.querySelector('#reference-overlay');
 const dropHint = document.querySelector('#drop-hint');
 const selectionElement = document.querySelector('#selection');
+const validationElement = document.querySelector('#validation-results');
+const validationCountElement = document.querySelector('#validation-count');
+const exportBlockoutButton = document.querySelector('#export-blockout');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x101317);
@@ -41,6 +46,7 @@ const grid = new THREE.GridHelper(20, 40, 0x58606a, 0x2d333b);
 scene.add(grid);
 
 const loader = new GLTFLoader();
+const exporter = new GLTFExporter();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const selectionBox = new THREE.Box3Helper(new THREE.Box3(), 0xffcc5c);
@@ -49,6 +55,8 @@ scene.add(selectionBox);
 
 let modelRoot = null;
 let dimensionSpec = null;
+let sceneSpec = null;
+let modelIsBlockout = false;
 let wireframeEnabled = false;
 let edgesEnabled = false;
 let autoRotateEnabled = false;
@@ -80,6 +88,8 @@ function clearModel() {
   modelRoot = null;
   selectionBox.visible = false;
   selectionElement.textContent = 'Nothing selected';
+  exportBlockoutButton.disabled = true;
+  modelIsBlockout = false;
 }
 
 function fitCamera() {
@@ -120,11 +130,6 @@ function updateMetrics() {
   compareDimensionSpec(size);
 }
 
-function unitToMeters(value, unit) {
-  const factors = { mm: 0.001, cm: 0.01, m: 1, in: 0.0254, ft: 0.3048 };
-  return Number.isFinite(value) && factors[unit] ? value * factors[unit] : null;
-}
-
 function compareDimensionSpec(size = measuredBounds()) {
   if (!dimensionSpec || !size) {
     dimensionResults.textContent = 'Load a dimension specification to compare expected and actual size.';
@@ -133,15 +138,15 @@ function compareDimensionSpec(size = measuredBounds()) {
   }
   const sourceUnit = dimensionSpec.units?.source ?? 'cm';
   const expected = {
-    width: unitToMeters(dimensionSpec.overall?.width, sourceUnit),
-    height: unitToMeters(dimensionSpec.overall?.height, sourceUnit),
-    depth: unitToMeters(dimensionSpec.overall?.depth, sourceUnit),
+    width: toMeters(dimensionSpec.overall?.width, sourceUnit),
+    height: toMeters(dimensionSpec.overall?.height, sourceUnit),
+    depth: toMeters(dimensionSpec.overall?.depth, sourceUnit),
   };
   const actual = { width: size.x, height: size.y, depth: size.z };
   const tolerancePercent = Number.isFinite(dimensionSpec.tolerance?.relativePercent)
     ? dimensionSpec.tolerance.relativePercent
     : 1;
-  const toleranceAbsolute = unitToMeters(
+  const toleranceAbsolute = toMeters(
     dimensionSpec.tolerance?.absolute,
     dimensionSpec.tolerance?.unit ?? sourceUnit,
   ) ?? 0;
@@ -184,6 +189,35 @@ function compareDimensionSpec(size = measuredBounds()) {
   }
   dimensionResults.replaceChildren(...rows);
   dimensionResults.className = 'results';
+}
+
+function renderValidation(preflight = null) {
+  validationElement.replaceChildren();
+  if (!sceneSpec || !modelRoot) {
+    validationElement.textContent = 'Load a scene specification and generate or load a model.';
+    validationElement.className = 'validation muted';
+    validationCountElement.textContent = '0';
+    return;
+  }
+  const specValidation = preflight ?? validateSceneSpec(sceneSpec);
+  const results = [
+    ...specValidation.warnings.map((message) => ({ severity: 'warning', code: 'spec-warning', message })),
+    ...evaluateBlockout(modelRoot, sceneSpec, dimensionSpec),
+  ];
+  for (const item of results) {
+    const row = document.createElement('div');
+    row.className = `validation-row ${item.severity}`;
+    const marker = document.createElement('span');
+    marker.textContent = item.severity === 'pass' ? 'PASS' : item.severity === 'warning' ? 'CHECK' : 'FAIL';
+    const message = document.createElement('p');
+    message.textContent = item.message;
+    row.append(marker, message);
+    validationElement.append(row);
+  }
+  const failures = results.filter((item) => item.severity === 'error').length;
+  validationCountElement.textContent = failures ? `${failures} fail` : 'pass';
+  validationCountElement.dataset.tone = failures ? 'error' : 'success';
+  validationElement.className = 'validation';
 }
 
 function applyWireframe() {
@@ -266,9 +300,9 @@ function buildPartTree() {
   }
 }
 
-function acceptModel(gltf, label) {
+function acceptScene(root, label, { blockout = false } = {}) {
   clearModel();
-  modelRoot = gltf.scene;
+  modelRoot = root;
   modelRoot.name ||= 'GLB_ROOT';
   modelRoot.traverse((object) => {
     if (object.isMesh) {
@@ -282,8 +316,42 @@ function acceptModel(gltf, label) {
   buildPartTree();
   fitCamera();
   updateMetrics();
+  renderValidation();
   dropHint.hidden = true;
+  modelIsBlockout = blockout;
+  exportBlockoutButton.disabled = !blockout;
   setStatus(`${label} loaded`, 'success');
+}
+
+function acceptModel(gltf, label) {
+  acceptScene(gltf.scene, label);
+}
+
+function generateBlockout(spec, label = 'Scene specification') {
+  const validation = validateSceneSpec(spec);
+  if (validation.errors.length) {
+    sceneSpec = null;
+    clearModel();
+    validationElement.replaceChildren();
+    for (const message of validation.errors) {
+      const row = document.createElement('div');
+      row.className = 'validation-row error';
+      const marker = document.createElement('span');
+      marker.textContent = 'FAIL';
+      const text = document.createElement('p');
+      text.textContent = message;
+      row.append(marker, text);
+      validationElement.append(row);
+    }
+    validationElement.className = 'validation';
+    validationCountElement.textContent = `${validation.errors.length} fail`;
+    validationCountElement.dataset.tone = 'error';
+    setStatus('Scene specification has validation errors.', 'error');
+    return;
+  }
+  sceneSpec = spec;
+  acceptScene(buildBlockout(spec), `${label} blockout`, { blockout: true });
+  renderValidation(validation);
 }
 
 function loadUrl(url) {
@@ -316,16 +384,56 @@ document.querySelector('#model-url').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') loadUrl(event.currentTarget.value.trim());
 });
 
+document.querySelector('#scene-spec-file').addEventListener('change', async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+  try {
+    generateBlockout(JSON.parse(await file.text()), file.name);
+  } catch (error) {
+    console.error(error);
+    setStatus('Scene specification is not valid JSON.', 'error');
+  }
+});
+
 document.querySelector('#dimension-file').addEventListener('change', async (event) => {
   const [file] = event.target.files;
   if (!file) return;
   try {
     dimensionSpec = JSON.parse(await file.text());
     compareDimensionSpec();
+    renderValidation();
     setStatus('Dimension specification loaded', 'success');
   } catch (error) {
     console.error(error);
     setStatus('Dimension specification is not valid JSON.', 'error');
+  }
+});
+
+exportBlockoutButton.addEventListener('click', async () => {
+  if (!modelRoot || !modelIsBlockout) return;
+  const visibility = [];
+  modelRoot.traverse((object) => {
+    visibility.push([object, object.visible]);
+    object.visible = object.name !== '__review_edges';
+  });
+  try {
+    const data = await exporter.parseAsync(modelRoot, { binary: true, onlyVisible: true });
+    if (!(data instanceof ArrayBuffer) || data.byteLength === 0) throw new Error('GLB exporter returned no binary data.');
+    const blob = new Blob([data], { type: 'model/gltf-binary' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${sceneSpec?.name || 'blockout'}.glb`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(`Blockout GLB exported for Maya handoff (${(data.byteLength / 1024).toFixed(1)} kB).`, 'success');
+  } catch (error) {
+    console.error(error);
+    setStatus('Blockout GLB export failed.', 'error');
+  } finally {
+    for (const [object, visible] of visibility) object.visible = visible;
   }
 });
 

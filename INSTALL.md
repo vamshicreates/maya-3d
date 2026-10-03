@@ -2,6 +2,8 @@
 
 This is a Codex skill. Autodesk Maya is a separate application and must be installed and licensed to create or verify a native scene. No Maya plug-in is installed by this package.
 
+The Three.js blockout and review application requires Node.js `20.19` or newer in the supported Vite range. From `viewer/`, run `npm install` once after installing or updating the skill.
+
 ## macOS
 
 Place the `maya-3d` folder at `${CODEX_HOME:-$HOME/.codex}/skills/maya-3d`. On the Mac where this skill was built, that path is already linked to the workspace copy. Start a new Codex chat and invoke `$maya-3d` with an image or scene brief.

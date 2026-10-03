@@ -35,6 +35,8 @@ Copy `assets/dimension_spec_template.json` into the Maya project as `dimension_s
 
 Conflicting authoritative dimensions require clarification. Missing dimensions do not block a visualization model: select a plausible scale, mark it estimated, and keep all dependent values parametric so one later measurement can rescale or rebuild the model.
 
+Create `scene_spec.json` alongside it from `assets/scene_spec_template.json`. Store construction geometry, semantic part names, local transforms, curve paths, attachment anchors, connections, and symmetry rules there. Both the preliminary Three.js blockout and Maya generator must consume these shared values rather than maintaining separate measurements.
+
 ## Drive Maya from measurements
 
 - Set the Maya working unit explicitly, commonly centimeters, with `cmds.currentUnit(linear="cm")`.
