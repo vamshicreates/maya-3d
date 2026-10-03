@@ -7,6 +7,7 @@ A reusable Codex skill for creating, editing, and checking Autodesk Maya project
 - Image-to-scene workflow with explicit handling of hidden geometry and scale assumptions
 - Dimension-aware modeling that separates pixel resolution from physical measurements
 - A reusable `dimension_spec.json` template for units, anchors, tolerances, and measurement provenance
+- An integrated Three.js GLB reviewer with part visibility, selection, wireframe, edge overlays, reference-image comparison, and dimension checks
 - Cross-platform `mayapy` discovery for Windows and macOS
 - A reusable Maya scene-job template
 - Native `.ma` or `.mb` scene verification by reopening the generated scene
@@ -56,9 +57,25 @@ maya-3d/
 ├── references/
 │   ├── dimensions-and-scale.md
 │   ├── image-to-scene.md
-│   └── platform-and-rendering.md
+│   ├── platform-and-rendering.md
+│   └── threejs-review.md
+├── viewer/
+│   ├── index.html
+│   ├── package.json
+│   └── src/
 └── scripts/maya_runner.py
 ```
+
+## Three.js review application
+
+The repository includes a browser review tool powered by the official Three.js package. From `viewer/`, run:
+
+```bash
+npm install
+npm run dev
+```
+
+Load a self-contained GLB, the project's `dimension_spec.json`, and an optional reference image. The viewer reports world-space dimensions in meters, missing required parts, and expected-versus-actual size differences while providing interactive model inspection. Maya remains the authoritative editable scene.
 
 ## Validation status
 

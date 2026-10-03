@@ -33,6 +33,7 @@
   ],
   "anchors": {},
   "symmetryPairs": [],
+  "requiredParts": [],
   "tolerance": {
     "absolute": 0.2,
     "unit": "cm",
