@@ -5,6 +5,8 @@ A reusable Codex skill for creating, editing, and checking Autodesk Maya project
 ## What it provides
 
 - Image-to-scene workflow with explicit handling of hidden geometry and scale assumptions
+- Dimension-aware modeling that separates pixel resolution from physical measurements
+- A reusable `dimension_spec.json` template for units, anchors, tolerances, and measurement provenance
 - Cross-platform `mayapy` discovery for Windows and macOS
 - A reusable Maya scene-job template
 - Native `.ma` or `.mb` scene verification by reopening the generated scene
@@ -49,8 +51,10 @@ maya-3d/
 ├── SKILL.md
 ├── INSTALL.md
 ├── agents/openai.yaml
+├── assets/dimension_spec_template.json
 ├── assets/scene_job_template.py
 ├── references/
+│   ├── dimensions-and-scale.md
 │   ├── image-to-scene.md
 │   └── platform-and-rendering.md
 └── scripts/maya_runner.py

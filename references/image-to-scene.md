@@ -2,7 +2,7 @@
 
 ## Interpret the image
 
-- Separate visible facts from inferred geometry. Estimate a scale using any known dimension; otherwise choose consistent working units and document the assumed size. A single photograph cannot establish unseen surfaces or exact measurements.
+- Separate visible facts from inferred geometry. Follow [dimensions-and-scale.md](dimensions-and-scale.md) to record raster size, extract explicit measurements, establish units, and mark estimates. A single photograph cannot establish unseen surfaces or exact measurements.
 - Build a part list before modeling: primary masses, cutouts, trim, repeated components, transparent parts, decals/text, ground or environment, and optional moving parts. Prioritize silhouette and proportion, then large color regions, then detail.
 - Determine whether the object needs a clean production mesh, concept visualization, riggable topology, or 3D-print-ready geometry. These require different topology and verification. If unspecified, make an editable visualization mesh rather than asserting manufacturing accuracy.
 - Use an image plane or camera reference only as a guide. Keep it separate from renderable geometry; do not count the plane as the model. Autodesk documents `cmds.imagePlane(fileName=..., camera=...)` and image plane placement in the Maya command and lighting help.
@@ -21,3 +21,4 @@
 3. Topology and shading have no obvious holes, flipped normals, accidental intersections, or broken UVs for the requested use.
 4. Project contains the generating job, reference assets, saved scene, and a preview or a clear reason why rendering was unavailable.
 5. Any hidden geometry, dimensions, typography, and material properties invented from an ambiguous image are documented in the delivery note.
+6. Scene bounds, named anchor distances, curve endpoints, and symmetry pairs agree with `dimension_spec.json` within its stated tolerances.
